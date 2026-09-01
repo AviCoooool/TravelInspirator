@@ -139,6 +139,7 @@ class TravelAgent:
             raw = await self.llm.chat(SYSTEM_PROMPT, user_prompt)
             data = self.llm.parse_json_response(raw)
             data["context_summary"] = _build_context_summary(request)
+            data["source"] = "gemini"
             response = TravelResponse.model_validate(data)
             if self.llm.last_provider_used == "mock":
                 # LLM chain fell back to static mock — replace with mood-aware mock

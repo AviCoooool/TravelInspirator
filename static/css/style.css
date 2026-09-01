@@ -350,6 +350,33 @@ textarea {
 /* Results */
 .results-header {
   margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.source-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.source-badge.mock {
+  color: #c4a35a;
+  background: rgba(196, 163, 90, 0.12);
+  border-color: rgba(196, 163, 90, 0.35);
+}
+
+.source-badge.gemini {
+  color: #5eb8a8;
+  background: rgba(94, 184, 168, 0.12);
+  border-color: rgba(94, 184, 168, 0.4);
 }
 
 .section-title {

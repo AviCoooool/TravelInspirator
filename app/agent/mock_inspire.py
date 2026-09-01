@@ -774,5 +774,6 @@ def build_mock_response(request: TravelRequest) -> TravelResponse:
             f"Mood={mood} · Scope={scope} · Home={home} · Currency={currency} · "
             f"Budget={budget} · Style={style} · Demo=mood-aware mock"
         ),
+        "source": "mock",
     }
     return TravelResponse.model_validate(data)

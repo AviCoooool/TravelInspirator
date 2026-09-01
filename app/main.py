@@ -43,8 +43,24 @@ async def home() -> FileResponse:
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok", "provider": settings.provider}
+async def health() -> dict:
+    key = (settings.gemini_api_key or "").strip()
+    configured = settings.provider.lower()
+    # What inspire() will actually try first
+    if configured == "mock" or not key:
+        active = "mock"
+        reason = "PROVIDER=mock" if configured == "mock" else "no GEMINI_API_KEY"
+    else:
+        active = "gemini"
+        reason = "PROVIDER=gemini with API key set"
+    return {
+        "status": "ok",
+        "configured_provider": configured,
+        "active_engine": active,
+        "gemini_key_present": bool(key),
+        "gemini_model": settings.gemini_model,
+        "reason": reason,
+    }
 
 
 @app.post("/api/inspire", response_model=TravelResponse)

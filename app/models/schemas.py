@@ -113,3 +113,7 @@ class TravelResponse(BaseModel):
     context_summary: str | None = Field(
         None, description="How Profile, Preferences, Policy, and emotion signals shaped the result"
     )
+    source: Literal["gemini", "mock"] = Field(
+        "mock",
+        description="Which engine produced this response: live Gemini or local mock catalog",
+    )
