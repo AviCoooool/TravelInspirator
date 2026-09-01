@@ -50,7 +50,7 @@ class TravelRequest(BaseModel):
     mood: str = Field(..., description="Current emotional state")
     intent: str = Field(..., description="What the traveler hopes to gain from the trip")
     budget: BudgetTier = Field("moderate", description="Daily budget tier")
-    currency: CurrencyCode = Field("USD", description="Preferred currency for cost estimates")
+    currency: CurrencyCode = Field("INR", description="Preferred currency for cost estimates")
     travel_style: str = Field(..., description="Preferred travel style")
     context: str | None = Field(None, description="Season, duration, departure city, constraints")
     profile: TravelProfile | None = None

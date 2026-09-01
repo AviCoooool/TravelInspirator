@@ -1,11 +1,12 @@
 from app.agent.destination_matcher import build_personality_context
 from app.agent.emotional_engine import build_emotional_context
 from app.agent.inspiration_cluster import build_clustering_context
+from app.agent.mock_inspire import build_mock_response
 from app.config import settings
 from app.llm.client import LLMClient
 from app.models.schemas import TravelRequest, TravelResponse
 
-SYSTEM_PROMPT = """You are the AI Travel Inspirator — an emotion-first, context-aware travel discovery agent for a GLOBAL market.
+SYSTEM_PROMPT = """You are the AI Travel Inspirator — an emotion-first, context-aware travel discovery agent.
 
 Your mission is to help people who don't know where to go find destinations that will genuinely make them happier — not just the most popular places.
 
@@ -70,7 +71,8 @@ Provide 2-3 travel concepts and 2-3 inspiration clusters. Be specific, warm, and
 
 IMPORTANT:
 - Express ALL costs in the traveler's selected currency (USD / EUR / GBP / INR / AED / JPY / AUD).
-- Think globally — destinations worldwide unless Policy/visa constraints narrow the space.
+- Respect home_base first: prefer domestic and nearby regional destinations when home base or currency (e.g. INR → India) implies local travel. Do NOT default to far-away Europe/US icons unless the traveler clearly wants international.
+- Mix: include at least 1–2 destinations in/near the traveler's home country when known; international only when mood/budget/intent ask for it.
 - Policy constraints are hard filters; Preferences and Profile are soft ranking signals.
 - Multi-modal emotion signals (selfie / voice / text sentiment) should influence tone of recommendations.
 """
@@ -115,26 +117,32 @@ class TravelAgent:
         self.llm = LLMClient()
 
     async def inspire(self, request: TravelRequest) -> TravelResponse:
+        # Mood-aware mock when explicitly in mock mode (or no Gemini key)
+        if settings.provider.lower() == "mock" or not (settings.gemini_api_key or "").strip():
+            return build_mock_response(request)
+
         user_prompt = "\n\n".join(
             [
                 build_emotional_context(request),
                 build_personality_context(request),
                 build_clustering_context(request),
                 (
-                    "Generate personalized GLOBAL travel inspiration for this traveler. "
-                    f"Use currency {request.currency} for all costs. Return JSON only."
+                    "Generate personalized travel inspiration for this traveler. "
+                    "Prefer domestic/nearby destinations when home_base or currency implies local travel "
+                    f"(e.g. INR or India home → India-first). Use currency {request.currency} for all costs. "
+                    "Return JSON only."
                 ),
             ]
         )
 
-        raw = await self.llm.chat(SYSTEM_PROMPT, user_prompt)
-        data = self.llm.parse_json_response(raw)
-        data["context_summary"] = _build_context_summary(request)
-        response = TravelResponse.model_validate(data)
-        if self.llm.last_provider_used == "mock" and settings.provider.lower() != "mock":
-            response.agent_reasoning = (
-                "[Demo mode — live LLM unavailable; showing sample inspiration. "
-                "Add GEMINI_API_KEY in .env for real AI results.] "
-                + response.agent_reasoning
-            )
-        return response
+        try:
+            raw = await self.llm.chat(SYSTEM_PROMPT, user_prompt)
+            data = self.llm.parse_json_response(raw)
+            data["context_summary"] = _build_context_summary(request)
+            response = TravelResponse.model_validate(data)
+            if self.llm.last_provider_used == "mock":
+                # LLM chain fell back to static mock — replace with mood-aware mock
+                return build_mock_response(request)
+            return response
+        except Exception:
+            return build_mock_response(request)
