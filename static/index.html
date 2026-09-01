@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Travel Inspirator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="bg-gradient"></div>
+  <div class="bg-orbs">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+
+  <header class="header">
+    <div class="logo">
+      <span class="logo-icon">✦</span>
+      <span class="logo-text">Travel Inspirator</span>
+    </div>
+    <p class="tagline">Global · Emotion-first · Context-aware discovery</p>
+  </header>
+
+  <main class="container">
+    <section id="input-section" class="card input-card">
+      <h1>Where should <em>you</em> travel?</h1>
+      <p class="subtitle">Emotions cross borders. Share how you feel — and your Profile, Preferences &amp; Policy — for inspiration that fits your life.</p>
+
+      <form id="inspire-form">
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label>How are you feeling?</label>
+            <div class="mood-picker" id="mood-picker">
+              <button type="button" class="mood-chip" data-value="restless">Restless</button>
+              <button type="button" class="mood-chip" data-value="peaceful">Peaceful</button>
+              <button type="button" class="mood-chip" data-value="adventurous">Adventurous</button>
+              <button type="button" class="mood-chip" data-value="romantic">Romantic</button>
+              <button type="button" class="mood-chip" data-value="curious">Curious</button>
+              <button type="button" class="mood-chip" data-value="burnt-out">Burnt out</button>
+              <button type="button" class="mood-chip" data-value="excited">Excited</button>
+              <button type="button" class="mood-chip" data-value="nostalgic">Nostalgic</button>
+              <button type="button" class="mood-chip" data-value="happy">Happy</button>
+              <button type="button" class="mood-chip" data-value="sad">Sad</button>
+              <button type="button" class="mood-chip" data-value="frustrated">Frustrated</button>
+              <button type="button" class="mood-chip" data-value="anxious">Anxious</button>
+            </div>
+            <input type="hidden" id="mood" name="mood" required />
+          </div>
+
+          <div class="form-group full-width emotion-capture">
+            <label>Multi-modal emotion signals <span class="optional">(optional · demo)</span></label>
+            <div class="emotion-row">
+              <div class="emotion-block">
+                <span class="emotion-label">Selfie expression</span>
+                <input type="file" id="selfie-input" accept="image/*" capture="user" />
+                <select id="facial_hint">
+                  <option value="">No facial hint</option>
+                  <option value="happy">Happy</option>
+                  <option value="sad">Sad</option>
+                  <option value="frustrated">Frustrated</option>
+                  <option value="anxious">Anxious</option>
+                  <option value="calm">Calm</option>
+                  <option value="tired">Tired</option>
+                </select>
+                <p class="hint" id="selfie-status">Upload a selfie — we'll map expression → mood (simulated for demo).</p>
+              </div>
+              <div class="emotion-block">
+                <span class="emotion-label">Voice / spoken emotion</span>
+                <select id="voice_hint">
+                  <option value="">No voice hint</option>
+                  <option value="upbeat">Upbeat</option>
+                  <option value="soft / low energy">Soft / low energy</option>
+                  <option value="tense">Tense</option>
+                  <option value="excited">Excited</option>
+                  <option value="melancholic">Melancholic</option>
+                </select>
+                <p class="hint">Future: live voice tone analysis. Demo: select tone manually.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="intent">What do you hope to gain?</label>
+            <textarea id="intent" name="intent" rows="2" placeholder="e.g. Reset my mind, reconnect with nature, celebrate a milestone..." required></textarea>
+            <p class="hint" id="sentiment-hint">Text sentiment will be inferred from your intent.</p>
+          </div>
+
+          <div class="form-group">
+            <label for="currency">Currency</label>
+            <select id="currency" name="currency" required>
+              <option value="USD" selected>USD — US Dollar</option>
+              <option value="EUR">EUR — Euro</option>
+              <option value="GBP">GBP — British Pound</option>
+              <option value="INR">INR — Indian Rupee</option>
+              <option value="AED">AED — UAE Dirham</option>
+              <option value="JPY">JPY — Japanese Yen</option>
+              <option value="AUD">AUD — Australian Dollar</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="budget">Budget tier</label>
+            <select id="budget" name="budget" required>
+              <option value="budget">Budget</option>
+              <option value="moderate" selected>Moderate</option>
+              <option value="luxury">Luxury</option>
+              <option value="flexible">Flexible</option>
+            </select>
+            <p class="hint" id="budget-hint">≈ $80–$150 / day</p>
+          </div>
+
+          <div class="form-group">
+            <label for="travel_style">Travel style</label>
+            <select id="travel_style" name="travel_style" required>
+              <option value="solo">Solo explorer</option>
+              <option value="couple">Couple getaway</option>
+              <option value="family">Family adventure</option>
+              <option value="backpacker">Backpacker</option>
+              <option value="luxury">Luxury traveler</option>
+              <option value="digital nomad">Digital nomad</option>
+              <option value="group">Group trip</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="home_base">Home base <span class="optional">(Profile)</span></label>
+            <input type="text" id="home_base" placeholder="e.g. London, UK" />
+          </div>
+        </div>
+
+        <details class="advanced-panel">
+          <summary>Profile · Preferences · Policy (3 Ps) — enrich context</summary>
+          <div class="form-grid advanced-grid">
+            <div class="form-group">
+              <label for="traveler_type">Traveler type</label>
+              <input type="text" id="traveler_type" placeholder="leisure / bleisure / corporate / student" />
+            </div>
+            <div class="form-group">
+              <label for="companions">Companions</label>
+              <input type="text" id="companions" placeholder="solo / partner / kids / friends" />
+            </div>
+            <div class="form-group">
+              <label for="interests">Interests (Preferences)</label>
+              <input type="text" id="interests" placeholder="food, museums, hiking, wellness..." />
+            </div>
+            <div class="form-group">
+              <label for="pace">Pace</label>
+              <select id="pace">
+                <option value="">Any</option>
+                <option value="slow">Slow</option>
+                <option value="balanced">Balanced</option>
+                <option value="packed">Packed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="climate">Climate preference</label>
+              <input type="text" id="climate" placeholder="warm / cool / mild" />
+            </div>
+            <div class="form-group">
+              <label for="social_context">Social / friend-circle cues</label>
+              <input type="text" id="social_context" placeholder="Friends loved Kyoto; saw Portugal on Instagram..." />
+            </div>
+            <div class="form-group">
+              <label for="visa_constraints">Visa / passport (Policy)</label>
+              <input type="text" id="visa_constraints" placeholder="Schengen ok; avoid visa-on-arrival risk" />
+            </div>
+            <div class="form-group">
+              <label for="corporate_policy">Corporate policy</label>
+              <input type="text" id="corporate_policy" placeholder="Max $200/night; economy flights only" />
+            </div>
+            <div class="form-group">
+              <label for="accessibility">Accessibility</label>
+              <input type="text" id="accessibility" placeholder="Step-free stays, etc." />
+            </div>
+            <div class="form-group">
+              <label for="max_flight_hours">Max flight hours</label>
+              <input type="text" id="max_flight_hours" placeholder="e.g. 8 hours" />
+            </div>
+          </div>
+        </details>
+
+        <div class="form-group full-width" style="margin-top: 1rem;">
+          <label for="context">Additional context <span class="optional">(optional)</span></label>
+          <textarea id="context" name="context" rows="2" placeholder="Season, trip duration, must-see regions..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-primary" id="submit-btn">
+          <span class="btn-text">Find my inspiration</span>
+          <span class="btn-loader hidden"></span>
+        </button>
+      </form>
+    </section>
+
+    <section id="loading-section" class="card loading-card hidden">
+      <div class="loading-animation"><div class="compass"></div></div>
+      <h2>Crafting your journey...</h2>
+      <p class="loading-steps">
+        <span id="step-1" class="step active">Reading emotions &amp; 3 Ps</span>
+        <span id="step-2" class="step">Matching destinations</span>
+        <span id="step-3" class="step">Building inspiration boards</span>
+      </p>
+    </section>
+
+    <section id="results-section" class="hidden">
+      <div class="results-header">
+        <button type="button" class="btn-secondary" id="back-btn">← Start over</button>
+      </div>
+      <div class="card profile-card" id="profile-card"></div>
+      <div class="card context-card" id="context-card"></div>
+      <h2 class="section-title">Curated Travel Concepts</h2>
+      <div id="concepts-grid" class="concepts-grid"></div>
+      <h2 class="section-title">Your Inspiration Board</h2>
+      <div class="card board-card" id="board-card"></div>
+      <div class="card reasoning-card" id="reasoning-card"></div>
+    </section>
+
+    <section id="error-section" class="card error-card hidden">
+      <h2>Something went wrong</h2>
+      <p id="error-message"></p>
+      <button type="button" class="btn-secondary" id="retry-btn">Try again</button>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Global currencies · Emotions first · Profile · Preferences · Policy</p>
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

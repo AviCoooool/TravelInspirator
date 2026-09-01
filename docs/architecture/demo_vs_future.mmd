@@ -1,0 +1,26 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#1C2438', 'primaryTextColor': '#FAFAF8', 'primaryBorderColor': '#4EC4B0', 'lineColor': '#D4A56A', 'secondaryColor': '#121828', 'tertiaryColor': '#242E45'}}}%%
+flowchart LR
+    subgraph DEMO["DEMO MVP — IN SCOPE"]
+        direction TB
+        D1["Manual mood chips + free-text intent"]
+        D2["3 Ps lite: Profile · Preferences · Policy<br/>from form fields"]
+        D3["TravelAgent: Emotional · Matcher · Cluster"]
+        D4["Gemini 2.5 + mock fallback"]
+        D5["Concepts · Boards · Multi-currency costs"]
+        D1 --> D2 --> D3 --> D4 --> D5
+    end
+
+    subgraph FUTURE["FUTURE / ROADMAP"]
+        direction TB
+        F1["Selfie facial expression CV"]
+        F2["Voice emotion ML"]
+        F3["RAG over destination knowledge"]
+        F4["Social / friend-circle context"]
+        F5["Booking APIs · Maps · Accounts"]
+        F1 --> F3
+        F2 --> F3
+        F4 --> F3
+        F3 --> F5
+    end
+
+    DEMO -.->|"extends into"| FUTURE

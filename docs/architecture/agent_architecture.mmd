@@ -1,0 +1,62 @@
+%%{init: {'theme': 'dark', 'themeVariables': { 'primaryColor': '#1C2438', 'primaryTextColor': '#FAFAF8', 'primaryBorderColor': '#D4A56A', 'lineColor': '#4EC4B0', 'secondaryColor': '#121828', 'tertiaryColor': '#242E45'}}}%%
+flowchart TB
+    subgraph UI["Presentation Layer"]
+        WEB["Web UI / Mood Form"]
+        MULTI["Multi-modal Capture<br/>Selfie · Voice · Text"]
+    end
+
+    subgraph API["API Layer — FastAPI"]
+        INSPIRE["POST /api/inspire"]
+        HEALTH["GET /health · /diagnose"]
+    end
+
+    subgraph EMOTION["Emotion Layer"]
+        MANUAL["Manual Mood Chips<br/>DEMO"]
+        SELFIE["Selfie Facial Expression<br/>FUTURE / IN-SCOPE"]
+        VOICE["Voice Emotion<br/>FUTURE / IN-SCOPE"]
+        SENT["Text Sentiment<br/>PARTIAL DEMO"]
+    end
+
+    subgraph CONTEXT["Context Layer — 3 Ps"]
+        PROFILE["Profile<br/>Traveller identity & history"]
+        PREFS["Preferences<br/>Style · currency · constraints"]
+        POLICY["Policy<br/>Budget · dates · compliance"]
+        SOCIAL["Social Graph Context<br/>Friends / feed signals — FUTURE"]
+    end
+
+    subgraph RAG["RAG Knowledge Base — FUTURE"]
+        DEST["Destination Knowledge"]
+        REVIEWS["Reviews & Guides"]
+        CULTURE["Culture & Seasonality"]
+    end
+
+    subgraph AGENT["TravelAgent Engines"]
+        EE["Emotional Engine"]
+        DM["Destination Matcher"]
+        IC["Inspiration Cluster"]
+    end
+
+    subgraph LLM["LLM Layer"]
+        GEM["Gemini 2.5"]
+        FALL["Mock Fallback"]
+    end
+
+    subgraph OUT["Outputs"]
+        CONCEPTS["Travel Concepts + Match Scores"]
+        BOARD["Inspiration Boards"]
+        COSTS["Multi-currency Cost Guidance<br/>USD · EUR · GBP · INR · AED · JPY · AUD"]
+    end
+
+    WEB --> INSPIRE
+    MULTI --> EMOTION
+    INSPIRE --> EMOTION
+    MANUAL --> CONTEXT
+    SELFIE --> CONTEXT
+    VOICE --> CONTEXT
+    SENT --> CONTEXT
+    CONTEXT --> AGENT
+    RAG -.->|"retrieve"| AGENT
+    AGENT --> LLM
+    GEM --> OUT
+    FALL --> OUT
+    HEALTH -.-> API
