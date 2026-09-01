@@ -324,12 +324,19 @@ function renderResults(data) {
       )}</strong>
       ${
         source === "mock"
-          ? " — live LLM unavailable. Check VPN + LLM_API_KEY, or PROVIDER in .env."
+          ? " — live LLM unavailable. Connect Coforge VPN, then open /api/llm-ping to verify."
           : source === "self-hosted"
             ? " — answered via Coforge Quasar router."
             : " — answered by live Gemini."
       }
     </p>
+    ${
+      data.fallback_reason
+        ? `<p class="hint" style="margin-top: 0.5rem; color: #c4a35a;">Fallback detail: ${escapeHtml(
+            data.fallback_reason
+          )}</p>`
+        : ""
+    }
   `;
 }
 

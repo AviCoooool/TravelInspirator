@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.agent.travel_agent import TravelAgent
 from app.config import settings
+from app.llm.client import LLMClient
 from app.models.schemas import TravelRequest, TravelResponse
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -73,6 +74,33 @@ async def health() -> dict:
         "gemini_key_present": has_gemini,
         "reason": reason,
     }
+
+
+@app.get("/api/llm-ping")
+async def llm_ping() -> dict:
+    """Probe the configured live LLM (Quasar / Gemini). Does not fall back to mock."""
+    provider = settings.provider.lower().replace("_", "-")
+    client = LLMClient()
+    try:
+        if provider == "mock":
+            return {"ok": False, "provider": provider, "error": "PROVIDER=mock — nothing to ping"}
+        text = await client.chat(
+            "Reply with the single word PONG.",
+            "Ping test. Reply PONG only.",
+        )
+        return {
+            "ok": client.last_provider_used != "mock",
+            "provider_used": client.last_provider_used,
+            "model": settings.model if client.last_provider_used == "self-hosted" else settings.gemini_model,
+            "preview": (text or "")[:200],
+            "error": client.last_error,
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "provider": provider,
+            "error": client.last_error or f"{type(exc).__name__}: {exc}",
+        }
 
 
 @app.post("/api/inspire", response_model=TravelResponse)

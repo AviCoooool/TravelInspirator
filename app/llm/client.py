@@ -19,20 +19,25 @@ class LLMClient:
             self.provider = "self-hosted"
         self.timeout = settings.query_timeout
         self.last_provider_used: str = self.provider
+        self.last_error: str | None = None
 
     async def chat(self, system_prompt: str, user_prompt: str) -> str:
         chain = self._provider_chain()
         last_error: Exception | None = None
+        errors: list[str] = []
 
         for provider in chain:
             try:
                 result = await self._call_provider(provider, system_prompt, user_prompt)
                 self.last_provider_used = provider
+                self.last_error = None if provider != "mock" else ("; ".join(errors) or None)
                 if provider != chain[0]:
                     logger.warning("LLM fallback: %s failed, used %s instead", chain[0], provider)
                 return result
             except Exception as exc:
                 last_error = exc
+                errors.append(f"{provider}: {exc}")
+                self.last_error = "; ".join(errors)
                 logger.warning("LLM provider %s failed: %s", provider, exc)
                 if not settings.llm_fallback_enabled:
                     break
@@ -51,6 +56,10 @@ class LLMClient:
         if primary != "mock":
             fallbacks.append("mock")
         return [primary, *fallbacks]
+
+    def _http_client(self) -> httpx.AsyncClient:
+        # Ignore HTTP(S)_PROXY — Cursor proxies break Quasar HTTPS CONNECT.
+        return httpx.AsyncClient(timeout=self.timeout, trust_env=False)
 
     async def _call_provider(self, provider: str, system_prompt: str, user_prompt: str) -> str:
         if provider == "mock":
@@ -80,21 +89,17 @@ class LLMClient:
             ],
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with self._http_client() as client:
             response = await client.post(url, headers=headers, json=payload)
             if response.status_code >= 400:
-                logger.error(
-                    "Quasar error %s: %s",
-                    response.status_code,
-                    response.text[:500],
-                )
-            response.raise_for_status()
+                body = response.text[:240]
+                logger.error("Quasar error %s: %s", response.status_code, body)
+                raise RuntimeError(f"HTTP {response.status_code}: {body}")
             data = response.json()
             return self._extract_openai_content(data)
 
     @staticmethod
     def _extract_openai_content(data: dict[str, Any]) -> str:
-        # OpenAI-compatible: choices[0].message.content
         choices = data.get("choices") or []
         if choices:
             message = choices[0].get("message") or {}
@@ -110,7 +115,6 @@ class LLMClient:
                         parts.append(part)
                 if parts:
                     return "\n".join(parts)
-        # Some routers return top-level text
         if isinstance(data.get("text"), str) and data["text"].strip():
             return data["text"]
         raise RuntimeError(f"Unexpected Quasar response shape: {str(data)[:300]}")
@@ -127,9 +131,10 @@ class LLMClient:
             "generationConfig": {"maxOutputTokens": settings.max_tokens},
         }
 
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        async with self._http_client() as client:
             response = await client.post(url, json=payload)
-            response.raise_for_status()
+            if response.status_code >= 400:
+                raise RuntimeError(f"Gemini HTTP {response.status_code}: {response.text[:240]}")
             data = response.json()
             return data["candidates"][0]["content"]["parts"][0]["text"]
 
@@ -155,54 +160,49 @@ class LLMClient:
                 "emotional_profile": {
                     "primary_emotion": "restless curiosity",
                     "travel_personality": "The Thoughtful Explorer",
-                    "decision_style": "Seeks meaning over hype, values authentic experiences",
-                    "priority_factors": ["emotional renewal", "cultural depth", "manageable cost"],
+                    "decision_style": "Seeks meaning over hype",
+                    "priority_factors": ["emotional renewal", "cultural depth"],
                 },
                 "travel_concepts": [
                     {
                         "title": "Slow Horizons",
-                        "tagline": "Where time stretches and the soul exhales",
-                        "emotional_hook": "You crave space to think without the pressure of ticking boxes.",
+                        "tagline": "Sample",
+                        "emotional_hook": "Fallback payload",
                         "destinations": [
                             {
                                 "name": "Luang Prabang",
                                 "country": "Laos",
-                                "match_score": 94,
-                                "why_it_fits": "Gentle pace, temple mornings, and river sunsets match a peaceful reset.",
-                                "estimated_cost": "$1,200–$1,800 for 10 days (moderate)",
-                                "suggested_duration": "8–12 days",
-                                "best_time_to_visit": "November to February",
+                                "match_score": 90,
+                                "why_it_fits": "Internal client mock",
+                                "estimated_cost": "$1,200",
+                                "suggested_duration": "8 days",
+                                "best_time_to_visit": "Nov–Feb",
                             }
                         ],
-                        "vibe_keywords": ["serene", "authentic", "unhurried"],
-                        "sample_itinerary": [
-                            "Day 1–2: Settle in, morning walks",
-                            "Day 3–4: Nature day trips",
-                            "Day 5–7: Cultural immersion",
-                        ],
-                        "budget_breakdown": "40% stay · 25% food · 20% transport · 15% experiences",
-                        "personality_fit": "Quiet beauty over nightlife.",
+                        "vibe_keywords": ["serene"],
+                        "sample_itinerary": ["Day 1: Arrive"],
+                        "budget_breakdown": "n/a",
+                        "personality_fit": "n/a",
                     }
                 ],
                 "inspiration_board": {
-                    "board_title": "Your Soul Map",
-                    "subtitle": "Sample board",
-                    "emotional_summary": "Demo fallback when live LLM is unavailable.",
+                    "board_title": "Fallback",
+                    "subtitle": "Internal",
+                    "emotional_summary": "Client mock",
                     "clusters": [
                         {
-                            "cluster_name": "Quiet Wonder",
-                            "theme": "Places that whisper",
-                            "mood_alignment": "Peaceful",
+                            "cluster_name": "Quiet",
+                            "theme": "Calm",
+                            "mood_alignment": "peaceful",
                             "destinations": ["Luang Prabang"],
-                            "visual_mood": "Mist and golden hour",
+                            "visual_mood": "soft",
                             "color_palette": ["#2D5A4A", "#E8D5B7", "#87A878", "#F4E4C1"],
-                            "suggested_activities": ["Sunrise walk", "Local meal"],
+                            "suggested_activities": ["Walk"],
                         }
                     ],
-                    "quote": "Different feelings deserve different maps.",
+                    "quote": "…",
                 },
-                "agent_reasoning": "Static LLM-client mock payload (prefer app mock_inspire).",
-                "context_summary": "Internal fallback",
+                "agent_reasoning": "Internal LLM-client mock",
                 "source": "mock",
             }
         )

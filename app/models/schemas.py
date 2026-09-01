@@ -117,3 +117,7 @@ class TravelResponse(BaseModel):
         "mock",
         description="Which engine produced this response: Quasar self-hosted, Gemini, or local mock",
     )
+    fallback_reason: str | None = Field(
+        None,
+        description="If source=mock after a live attempt failed, the underlying error",
+    )

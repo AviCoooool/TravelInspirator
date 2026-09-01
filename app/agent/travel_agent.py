@@ -120,11 +120,15 @@ class TravelAgent:
         provider = settings.provider.lower().replace("_", "-")
 
         if provider == "mock":
-            return build_mock_response(request)
+            return build_mock_response(request, fallback_reason="PROVIDER=mock")
         if provider == "self-hosted" and not (settings.llm_api_key or "").strip():
-            return build_mock_response(request)
+            return build_mock_response(
+                request, fallback_reason="PROVIDER=self-hosted but LLM_API_KEY is empty"
+            )
         if provider == "gemini" and not (settings.gemini_api_key or "").strip():
-            return build_mock_response(request)
+            return build_mock_response(
+                request, fallback_reason="PROVIDER=gemini but GEMINI_API_KEY is empty"
+            )
 
         user_prompt = "\n\n".join(
             [
@@ -146,8 +150,15 @@ class TravelAgent:
             data["context_summary"] = _build_context_summary(request)
             used = self.llm.last_provider_used
             if used == "mock":
-                return build_mock_response(request)
+                return build_mock_response(
+                    request,
+                    fallback_reason=self.llm.last_error or "LLM chain fell back to mock",
+                )
             data["source"] = "self-hosted" if used == "self-hosted" else "gemini"
+            data["fallback_reason"] = None
             return TravelResponse.model_validate(data)
-        except Exception:
-            return build_mock_response(request)
+        except Exception as exc:
+            return build_mock_response(
+                request,
+                fallback_reason=self.llm.last_error or f"{type(exc).__name__}: {exc}",
+            )

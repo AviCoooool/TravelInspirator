@@ -669,7 +669,11 @@ def _fmt_cost(currency: str, budget: str, days: int, scale: float = 1.0) -> str:
     return f"{sym}{lo_i:,}–{sym}{hi_i:,} for {days} days ({budget})"
 
 
-def build_mock_response(request: TravelRequest) -> TravelResponse:
+def build_mock_response(
+    request: TravelRequest,
+    *,
+    fallback_reason: str | None = None,
+) -> TravelResponse:
     mood = (request.mood or DEFAULT_MOOD).lower().strip()
     india_first = _prefer_india(request)
     source = INDIA_MOOD_DESTINATIONS if india_first else MOOD_DESTINATIONS
@@ -739,6 +743,19 @@ def build_mock_response(request: TravelRequest) -> TravelResponse:
 
     intent_bit = (request.intent or "this trip")[:80]
     scope = "India domestic / nearby" if india_first else "global"
+    if fallback_reason:
+        reasoning = (
+            f"Live LLM unavailable — using mood-aware mock ('{mood}', scope={scope}). "
+            f"Cause: {fallback_reason}"
+        )
+    else:
+        reasoning = (
+            f"Demo engine used the '{mood}' pack with scope={scope} "
+            f"(INR or India home base → domestic-first; otherwise global). "
+            f"Costs in {currency} for budget '{budget}'. "
+            "For live AI: PROVIDER=self-hosted + LLM_API_KEY + Coforge VPN "
+            "(or PROVIDER=gemini + Google AI Studio key)."
+        )
     data = {
         "emotional_profile": {
             "primary_emotion": mood,
@@ -764,16 +781,12 @@ def build_mock_response(request: TravelRequest) -> TravelResponse:
             "clusters": clusters,
             "quote": "Different feelings deserve different maps — often closer than you think.",
         },
-        "agent_reasoning": (
-            f"Demo engine used the '{mood}' pack with scope={scope} "
-            f"(INR or India home base → domestic-first; otherwise global). "
-            f"Costs in {currency} for budget '{budget}'. "
-            "Set PROVIDER=gemini + GEMINI_API_KEY for live LLM variety."
-        ),
+        "agent_reasoning": reasoning,
         "context_summary": (
             f"Mood={mood} · Scope={scope} · Home={home} · Currency={currency} · "
             f"Budget={budget} · Style={style} · Demo=mood-aware mock"
         ),
         "source": "mock",
+        "fallback_reason": fallback_reason,
     }
     return TravelResponse.model_validate(data)
