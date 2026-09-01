@@ -379,6 +379,12 @@ textarea {
   border-color: rgba(94, 184, 168, 0.4);
 }
 
+.source-badge.self-hosted {
+  color: #7aa2f7;
+  background: rgba(122, 162, 247, 0.12);
+  border-color: rgba(122, 162, 247, 0.4);
+}
+
 .section-title {
   font-family: var(--font-serif);
   font-size: 1.6rem;

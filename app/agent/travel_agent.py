@@ -117,8 +117,13 @@ class TravelAgent:
         self.llm = LLMClient()
 
     async def inspire(self, request: TravelRequest) -> TravelResponse:
-        # Mood-aware mock when explicitly in mock mode (or no Gemini key)
-        if settings.provider.lower() == "mock" or not (settings.gemini_api_key or "").strip():
+        provider = settings.provider.lower().replace("_", "-")
+
+        if provider == "mock":
+            return build_mock_response(request)
+        if provider == "self-hosted" and not (settings.llm_api_key or "").strip():
+            return build_mock_response(request)
+        if provider == "gemini" and not (settings.gemini_api_key or "").strip():
             return build_mock_response(request)
 
         user_prompt = "\n\n".join(
@@ -139,11 +144,10 @@ class TravelAgent:
             raw = await self.llm.chat(SYSTEM_PROMPT, user_prompt)
             data = self.llm.parse_json_response(raw)
             data["context_summary"] = _build_context_summary(request)
-            data["source"] = "gemini"
-            response = TravelResponse.model_validate(data)
-            if self.llm.last_provider_used == "mock":
-                # LLM chain fell back to static mock — replace with mood-aware mock
+            used = self.llm.last_provider_used
+            if used == "mock":
                 return build_mock_response(request)
-            return response
+            data["source"] = "self-hosted" if used == "self-hosted" else "gemini"
+            return TravelResponse.model_validate(data)
         except Exception:
             return build_mock_response(request)

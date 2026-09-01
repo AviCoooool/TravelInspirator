@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 
 
 class LLMClient:
-    """LLM client supporting Gemini and mock providers."""
+    """LLM client: Coforge Quasar (self-hosted), Gemini direct, or mock."""
 
     def __init__(self) -> None:
-        self.provider = settings.provider.lower()
-        if self.provider not in {"gemini", "mock"}:
-            self.provider = "gemini"
+        self.provider = settings.provider.lower().replace("_", "-")
+        if self.provider not in {"gemini", "self-hosted", "mock"}:
+            self.provider = "self-hosted"
         self.timeout = settings.query_timeout
         self.last_provider_used: str = self.provider
 
@@ -44,7 +44,9 @@ class LLMClient:
         if not settings.llm_fallback_enabled:
             return [primary]
         fallbacks: list[str] = []
-        if primary != "gemini" and settings.gemini_api_key:
+        if primary != "self-hosted" and (settings.llm_api_key or "").strip():
+            fallbacks.append("self-hosted")
+        if primary != "gemini" and (settings.gemini_api_key or "").strip():
             fallbacks.append("gemini")
         if primary != "mock":
             fallbacks.append("mock")
@@ -53,9 +55,65 @@ class LLMClient:
     async def _call_provider(self, provider: str, system_prompt: str, user_prompt: str) -> str:
         if provider == "mock":
             return self._mock_response()
+        if provider == "self-hosted":
+            return await self._call_self_hosted(system_prompt, user_prompt)
         if provider == "gemini":
             return await self._call_gemini(system_prompt, user_prompt)
         raise ValueError(f"Unsupported provider: {provider}")
+
+    async def _call_self_hosted(self, system_prompt: str, user_prompt: str) -> str:
+        key = (settings.llm_api_key or "").strip()
+        url = (settings.llm_api_url or "").strip()
+        if not key or not url:
+            raise RuntimeError("self-hosted requires LLM_API_KEY and LLM_API_URL")
+
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": settings.model,
+            "max_tokens": settings.max_tokens,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+        }
+
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code >= 400:
+                logger.error(
+                    "Quasar error %s: %s",
+                    response.status_code,
+                    response.text[:500],
+                )
+            response.raise_for_status()
+            data = response.json()
+            return self._extract_openai_content(data)
+
+    @staticmethod
+    def _extract_openai_content(data: dict[str, Any]) -> str:
+        # OpenAI-compatible: choices[0].message.content
+        choices = data.get("choices") or []
+        if choices:
+            message = choices[0].get("message") or {}
+            content = message.get("content")
+            if isinstance(content, str) and content.strip():
+                return content
+            if isinstance(content, list):
+                parts = []
+                for part in content:
+                    if isinstance(part, dict) and part.get("text"):
+                        parts.append(str(part["text"]))
+                    elif isinstance(part, str):
+                        parts.append(part)
+                if parts:
+                    return "\n".join(parts)
+        # Some routers return top-level text
+        if isinstance(data.get("text"), str) and data["text"].strip():
+            return data["text"]
+        raise RuntimeError(f"Unexpected Quasar response shape: {str(data)[:300]}")
 
     async def _call_gemini(self, system_prompt: str, user_prompt: str) -> str:
         model = settings.gemini_model
@@ -114,86 +172,37 @@ class LLMClient:
                                 "estimated_cost": "$1,200–$1,800 for 10 days (moderate)",
                                 "suggested_duration": "8–12 days",
                                 "best_time_to_visit": "November to February",
-                            },
-                            {
-                                "name": "Azores",
-                                "country": "Portugal",
-                                "match_score": 89,
-                                "why_it_fits": "Dramatic nature without crowds; ideal for reflective solo travel.",
-                                "estimated_cost": "$1,500–$2,200 for 7 days (moderate)",
-                                "suggested_duration": "5–8 days",
-                                "best_time_to_visit": "May to October",
-                            },
-                        ],
-                        "vibe_keywords": ["serene", "authentic", "unhurried", "green"],
-                        "sample_itinerary": [
-                            "Day 1–2: Settle in, morning walks, local café rituals",
-                            "Day 3–4: Nature day trips without rigid schedules",
-                            "Day 5–7: Cultural immersion — markets, cooking, conversations",
-                        ],
-                        "budget_breakdown": "40% accommodation, 25% food, 20% transport, 15% experiences",
-                        "personality_fit": "Perfect for travelers who recharge through quiet beauty rather than nightlife.",
-                    },
-                    {
-                        "title": "Hidden Mediterranean",
-                        "tagline": "Sun-soaked secrets the crowds haven't found",
-                        "emotional_hook": "You want warmth and wonder without the Instagram circus.",
-                        "destinations": [
-                            {
-                                "name": "Puglia",
-                                "country": "Italy",
-                                "match_score": 91,
-                                "why_it_fits": "Trulli towns and Adriatic coast deliver Italy's soul at half the price of Rome.",
-                                "estimated_cost": "$1,800–$2,500 for 10 days (moderate)",
-                                "suggested_duration": "7–10 days",
-                                "best_time_to_visit": "April to June",
                             }
                         ],
-                        "vibe_keywords": ["sun-drenched", "local", "coastal", "foodie"],
+                        "vibe_keywords": ["serene", "authentic", "unhurried"],
                         "sample_itinerary": [
-                            "Day 1–3: Base in Ostuni, explore white hill towns",
-                            "Day 4–5: Adriatic beach days and seafood dinners",
-                            "Day 6–8: Lecce baroque architecture and wine country",
+                            "Day 1–2: Settle in, morning walks",
+                            "Day 3–4: Nature day trips",
+                            "Day 5–7: Cultural immersion",
                         ],
-                        "budget_breakdown": "35% accommodation, 30% food, 20% transport, 15% experiences",
-                        "personality_fit": "Ideal for food-loving explorers who prefer charm over celebrity destinations.",
-                    },
+                        "budget_breakdown": "40% stay · 25% food · 20% transport · 15% experiences",
+                        "personality_fit": "Quiet beauty over nightlife.",
+                    }
                 ],
                 "inspiration_board": {
                     "board_title": "Your Soul Map",
-                    "subtitle": "Curated for a restless heart seeking gentle adventure",
-                    "emotional_summary": "You're not looking for the most popular place — you're looking for the place that will change how you feel.",
+                    "subtitle": "Sample board",
+                    "emotional_summary": "Demo fallback when live LLM is unavailable.",
                     "clusters": [
                         {
                             "cluster_name": "Quiet Wonder",
-                            "theme": "Places that whisper instead of shout",
-                            "mood_alignment": "Peaceful introspection with subtle awe",
-                            "destinations": ["Luang Prabang", "Azores", "Slovenian Alps"],
-                            "visual_mood": "Mist over mountains, golden hour light, empty paths",
+                            "theme": "Places that whisper",
+                            "mood_alignment": "Peaceful",
+                            "destinations": ["Luang Prabang"],
+                            "visual_mood": "Mist and golden hour",
                             "color_palette": ["#2D5A4A", "#E8D5B7", "#87A878", "#F4E4C1"],
-                            "suggested_activities": [
-                                "Sunrise meditation at a temple",
-                                "Coastal hiking with picnic lunch",
-                                "Local cooking class with a family",
-                            ],
-                        },
-                        {
-                            "cluster_name": "Warm Discovery",
-                            "theme": "Sun, culture, and flavors that feel like home",
-                            "mood_alignment": "Curious contentment and sensory joy",
-                            "destinations": ["Puglia", "Croatian islands", "Moroccan coast"],
-                            "visual_mood": "Terracotta rooftops, turquoise water, market colors",
-                            "color_palette": ["#C4704A", "#2E86AB", "#F5E6D3", "#D4A574"],
-                            "suggested_activities": [
-                                "Wandering through old town markets",
-                                "Sunset aperitivo by the sea",
-                                "Day trip to a lesser-known village",
-                            ],
-                        },
+                            "suggested_activities": ["Sunrise walk", "Local meal"],
+                        }
                     ],
-                    "quote": "Travel isn't about finding yourself — it's about finding the place that lets you breathe.",
+                    "quote": "Different feelings deserve different maps.",
                 },
-                "agent_reasoning": "Based on a restless yet reflective mood with moderate budget, I prioritized destinations offering emotional renewal over tourist density. The recommendations balance cost efficiency with transformative experiences.",
-                "context_summary": "Mood=restless · Currency=USD · Budget=moderate · Style=solo · EmotionSource=manual · Demo mock data",
+                "agent_reasoning": "Static LLM-client mock payload (prefer app mock_inspire).",
+                "context_summary": "Internal fallback",
+                "source": "mock",
             }
         )

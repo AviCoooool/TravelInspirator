@@ -44,21 +44,33 @@ async def home() -> FileResponse:
 
 @app.get("/health")
 async def health() -> dict:
-    key = (settings.gemini_api_key or "").strip()
-    configured = settings.provider.lower()
-    # What inspire() will actually try first
-    if configured == "mock" or not key:
-        active = "mock"
-        reason = "PROVIDER=mock" if configured == "mock" else "no GEMINI_API_KEY"
+    provider = settings.provider.lower().replace("_", "-")
+    has_quasar = bool((settings.llm_api_key or "").strip() and (settings.llm_api_url or "").strip())
+    has_gemini = bool((settings.gemini_api_key or "").strip())
+
+    if provider == "mock":
+        active, reason = "mock", "PROVIDER=mock"
+    elif provider == "self-hosted":
+        if has_quasar:
+            active, reason = "self-hosted", f"Quasar model={settings.model}"
+        else:
+            active, reason = "mock", "self-hosted selected but LLM_API_KEY/URL missing"
+    elif provider == "gemini":
+        if has_gemini:
+            active, reason = "gemini", f"Gemini model={settings.gemini_model}"
+        else:
+            active, reason = "mock", "gemini selected but GEMINI_API_KEY missing"
     else:
-        active = "gemini"
-        reason = "PROVIDER=gemini with API key set"
+        active, reason = "mock", f"unknown PROVIDER={provider}"
+
     return {
         "status": "ok",
-        "configured_provider": configured,
+        "configured_provider": provider,
         "active_engine": active,
-        "gemini_key_present": bool(key),
-        "gemini_model": settings.gemini_model,
+        "model": settings.model if active == "self-hosted" else settings.gemini_model,
+        "llm_api_url": settings.llm_api_url if has_quasar else None,
+        "quasar_key_present": has_quasar,
+        "gemini_key_present": has_gemini,
         "reason": reason,
     }
 
