@@ -11,10 +11,13 @@ services:
       - path: .env
         required: false
     environment:
-      # Override / defaults — set real GEMINI_API_KEY in .env for live AI
-      PROVIDER: ${PROVIDER:-mock}
+      PROVIDER: ${PROVIDER:-self-hosted}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_API_URL: ${LLM_API_URL:-https://quasarmarket.coforge.com/qag/llmrouter-api/v2/chat/completions}
+      MODEL: ${MODEL:-gpt-5.2}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
+      LLM_FALLBACK_ENABLED: ${LLM_FALLBACK_ENABLED:-true}
       MAX_TOKENS: ${MAX_TOKENS:-4000}
       QUERY_TIMEOUT: ${QUERY_TIMEOUT:-300}
       DEV_BEARER_TOKEN: ${DEV_BEARER_TOKEN:-dev-token-123}

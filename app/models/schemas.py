@@ -50,7 +50,7 @@ class TravelRequest(BaseModel):
     mood: str = Field(..., description="Current emotional state")
     intent: str = Field(..., description="What the traveler hopes to gain from the trip")
     budget: BudgetTier = Field("moderate", description="Daily budget tier")
-    currency: CurrencyCode = Field("USD", description="Preferred currency for cost estimates")
+    currency: CurrencyCode = Field("INR", description="Preferred currency for cost estimates")
     travel_style: str = Field(..., description="Preferred travel style")
     context: str | None = Field(None, description="Season, duration, departure city, constraints")
     profile: TravelProfile | None = None
@@ -112,4 +112,12 @@ class TravelResponse(BaseModel):
     agent_reasoning: str
     context_summary: str | None = Field(
         None, description="How Profile, Preferences, Policy, and emotion signals shaped the result"
+    )
+    source: Literal["gemini", "mock", "self-hosted"] = Field(
+        "mock",
+        description="Which engine produced this response: Quasar self-hosted, Gemini, or local mock",
+    )
+    fallback_reason: str | None = Field(
+        None,
+        description="If source=mock after a live attempt failed, the underlying error",
     )

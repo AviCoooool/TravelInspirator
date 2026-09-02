@@ -44,6 +44,7 @@ const contextCard = document.getElementById("context-card");
 const conceptsGrid = document.getElementById("concepts-grid");
 const boardCard = document.getElementById("board-card");
 const reasoningCard = document.getElementById("reasoning-card");
+const sourceBadge = document.getElementById("source-badge");
 const errorMessage = document.getElementById("error-message");
 
 let loadingInterval = null;
@@ -243,6 +244,18 @@ function resetForm() {
 }
 
 function renderResults(data) {
+  const source = (data.source || "mock").toLowerCase();
+  if (sourceBadge) {
+    const labels = {
+      gemini: "Source: Gemini (live AI)",
+      "self-hosted": "Source: Quasar (self-hosted)",
+      mock: "Source: Mock (local catalog)",
+    };
+    const cls = source === "self-hosted" ? "self-hosted" : source === "gemini" ? "gemini" : "mock";
+    sourceBadge.className = `source-badge ${cls}`;
+    sourceBadge.textContent = labels[source] || labels.mock;
+  }
+
   const profile = data.emotional_profile;
   profileCard.innerHTML = `
     <h3>${escapeHtml(profile.travel_personality)}</h3>
@@ -305,6 +318,25 @@ function renderResults(data) {
   reasoningCard.innerHTML = `
     <h4>AI Reasoning</h4>
     <p>${escapeHtml(data.agent_reasoning)}</p>
+    <p class="hint" style="margin-top: 0.75rem;">
+      Engine: <strong>${escapeHtml(
+        source === "self-hosted" ? "Quasar (self-hosted)" : source === "gemini" ? "Gemini" : "Mock"
+      )}</strong>
+      ${
+        source === "mock"
+          ? " — live LLM unavailable. Connect Coforge VPN, then open /api/llm-ping to verify."
+          : source === "self-hosted"
+            ? " — answered via Coforge Quasar router."
+            : " — answered by live Gemini."
+      }
+    </p>
+    ${
+      data.fallback_reason
+        ? `<p class="hint" style="margin-top: 0.5rem; color: #c4a35a;">Fallback detail: ${escapeHtml(
+            data.fallback_reason
+          )}</p>`
+        : ""
+    }
   `;
 }
 

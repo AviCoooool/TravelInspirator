@@ -1,11 +1,12 @@
 from app.agent.destination_matcher import build_personality_context
 from app.agent.emotional_engine import build_emotional_context
 from app.agent.inspiration_cluster import build_clustering_context
+from app.agent.mock_inspire import build_mock_response
 from app.config import settings
 from app.llm.client import LLMClient
 from app.models.schemas import TravelRequest, TravelResponse
 
-SYSTEM_PROMPT = """You are the AI Travel Inspirator — an emotion-first, context-aware travel discovery agent for a GLOBAL market.
+SYSTEM_PROMPT = """You are the AI Travel Inspirator — an emotion-first, context-aware travel discovery agent.
 
 Your mission is to help people who don't know where to go find destinations that will genuinely make them happier — not just the most popular places.
 
@@ -70,7 +71,8 @@ Provide 2-3 travel concepts and 2-3 inspiration clusters. Be specific, warm, and
 
 IMPORTANT:
 - Express ALL costs in the traveler's selected currency (USD / EUR / GBP / INR / AED / JPY / AUD).
-- Think globally — destinations worldwide unless Policy/visa constraints narrow the space.
+- Respect home_base first: prefer domestic and nearby regional destinations when home base or currency (e.g. INR → India) implies local travel. Do NOT default to far-away Europe/US icons unless the traveler clearly wants international.
+- Mix: include at least 1–2 destinations in/near the traveler's home country when known; international only when mood/budget/intent ask for it.
 - Policy constraints are hard filters; Preferences and Profile are soft ranking signals.
 - Multi-modal emotion signals (selfie / voice / text sentiment) should influence tone of recommendations.
 """
@@ -115,26 +117,48 @@ class TravelAgent:
         self.llm = LLMClient()
 
     async def inspire(self, request: TravelRequest) -> TravelResponse:
+        provider = settings.provider.lower().replace("_", "-")
+
+        if provider == "mock":
+            return build_mock_response(request, fallback_reason="PROVIDER=mock")
+        if provider == "self-hosted" and not (settings.llm_api_key or "").strip():
+            return build_mock_response(
+                request, fallback_reason="PROVIDER=self-hosted but LLM_API_KEY is empty"
+            )
+        if provider == "gemini" and not (settings.gemini_api_key or "").strip():
+            return build_mock_response(
+                request, fallback_reason="PROVIDER=gemini but GEMINI_API_KEY is empty"
+            )
+
         user_prompt = "\n\n".join(
             [
                 build_emotional_context(request),
                 build_personality_context(request),
                 build_clustering_context(request),
                 (
-                    "Generate personalized GLOBAL travel inspiration for this traveler. "
-                    f"Use currency {request.currency} for all costs. Return JSON only."
+                    "Generate personalized travel inspiration for this traveler. "
+                    "Prefer domestic/nearby destinations when home_base or currency implies local travel "
+                    f"(e.g. INR or India home → India-first). Use currency {request.currency} for all costs. "
+                    "Return JSON only."
                 ),
             ]
         )
 
-        raw = await self.llm.chat(SYSTEM_PROMPT, user_prompt)
-        data = self.llm.parse_json_response(raw)
-        data["context_summary"] = _build_context_summary(request)
-        response = TravelResponse.model_validate(data)
-        if self.llm.last_provider_used == "mock" and settings.provider.lower() != "mock":
-            response.agent_reasoning = (
-                "[Demo mode — live LLM unavailable; showing sample inspiration. "
-                "Add GEMINI_API_KEY in .env for real AI results.] "
-                + response.agent_reasoning
+        try:
+            raw = await self.llm.chat(SYSTEM_PROMPT, user_prompt)
+            data = self.llm.parse_json_response(raw)
+            data["context_summary"] = _build_context_summary(request)
+            used = self.llm.last_provider_used
+            if used == "mock":
+                return build_mock_response(
+                    request,
+                    fallback_reason=self.llm.last_error or "LLM chain fell back to mock",
+                )
+            data["source"] = "self-hosted" if used == "self-hosted" else "gemini"
+            data["fallback_reason"] = None
+            return TravelResponse.model_validate(data)
+        except Exception as exc:
+            return build_mock_response(
+                request,
+                fallback_reason=self.llm.last_error or f"{type(exc).__name__}: {exc}",
             )
-        return response

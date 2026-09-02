@@ -92,10 +92,10 @@
           <div class="form-group">
             <label for="currency">Currency</label>
             <select id="currency" name="currency" required>
-              <option value="USD" selected>USD — US Dollar</option>
+              <option value="INR" selected>INR — Indian Rupee</option>
+              <option value="USD">USD — US Dollar</option>
               <option value="EUR">EUR — Euro</option>
               <option value="GBP">GBP — British Pound</option>
-              <option value="INR">INR — Indian Rupee</option>
               <option value="AED">AED — UAE Dirham</option>
               <option value="JPY">JPY — Japanese Yen</option>
               <option value="AUD">AUD — Australian Dollar</option>
@@ -128,7 +128,8 @@
 
           <div class="form-group">
             <label for="home_base">Home base <span class="optional">(Profile)</span></label>
-            <input type="text" id="home_base" placeholder="e.g. London, UK" />
+            <input type="text" id="home_base" placeholder="e.g. Bengaluru, India" />
+            <p class="hint">Tip: set home base (or INR) so suggestions stay domestic / nearby.</p>
           </div>
         </div>
 
@@ -208,6 +209,7 @@
     <section id="results-section" class="hidden">
       <div class="results-header">
         <button type="button" class="btn-secondary" id="back-btn">← Start over</button>
+        <span id="source-badge" class="source-badge" aria-live="polite"></span>
       </div>
       <div class="card profile-card" id="profile-card"></div>
       <div class="card context-card" id="context-card"></div>
