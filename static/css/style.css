@@ -195,6 +195,18 @@ input, select, textarea {
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
+select {
+  background-color: #1a1f2e;
+  color: #f0ece4;
+  color-scheme: dark;
+}
+ 
+select option,
+select optgroup {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--accent);
