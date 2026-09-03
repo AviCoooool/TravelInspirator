@@ -1112,14 +1112,230 @@ def slide_thank_you(prs):
 
     info = slide.shapes.add_textbox(Inches(1), Inches(4.45), Inches(8), Inches(1.5))
     _font(info.text_frame.paragraphs[0], f"Team {TEAM}  ·  {ORG}", 14, bold=True, color=TEAL, align=PP_ALIGN.CENTER)
-    for line in ["GitHub: AviCoooool/AITravel", "Demo: http://localhost:8002", "We welcome your questions"]:
+    for line in ["GitHub: AviCoooool/AITravel", "Demo: http://localhost:8000", "We welcome your questions"]:
         p = info.text_frame.add_paragraph()
         _font(p, line, 12, color=MUTED, align=PP_ALIGN.CENTER)
 
     add_footer(slide, _n())
 
 
-def build_presentation() -> Path:
+def slide_pitch_01_title(prs):
+    """~45s — Hook + team."""
+    slide = new_slide(prs)
+    add_bg_decor(slide, GOLD)
+    num = _n()
+
+    badge = add_card(slide, 0.55, 0.4, 2.5, 0.38, NAVY_MID, TEAL)
+    _font(badge.text_frame.paragraphs[0], "3–4 MIN PITCH  ·  HACKATHON", 9, bold=True, color=TEAL, align=PP_ALIGN.CENTER)
+
+    org = slide.shapes.add_textbox(Inches(7.2), Inches(0.45), Inches(2.3), Inches(0.3))
+    _font(org.text_frame.paragraphs[0], ORG, 11, color=MUTED, align=PP_ALIGN.RIGHT)
+
+    title = slide.shapes.add_textbox(Inches(0.55), Inches(1.15), Inches(9), Inches(0.85))
+    _font(title.text_frame.paragraphs[0], "AI Travel Inspirator", 42, bold=True, color=GOLD)
+
+    sub = slide.shapes.add_textbox(Inches(0.55), Inches(2.0), Inches(9), Inches(0.45))
+    _font(sub.text_frame.paragraphs[0], "Emotion-first travel discovery — between Instagram & Booking.com", 18, color=WHITE, name=FONT_LIGHT)
+
+    line = slide.shapes.add_shape(MSO_AUTO_SHAPE_TYPE.RECTANGLE, Inches(0.55), Inches(2.55), Inches(2.2), Inches(0.04))
+    line.fill.solid()
+    line.fill.fore_color.rgb = GOLD
+    line.line.fill.background()
+
+    hook = slide.shapes.add_textbox(Inches(0.55), Inches(2.75), Inches(9), Inches(0.7))
+    _font(
+        hook.text_frame.paragraphs[0],
+        "We help undecided travelers find places that match how they feel —\n"
+        "with Profile · Preferences · Policy context and explainable inspiration boards.",
+        14,
+        color=SILVER,
+        name=FONT_LIGHT,
+    )
+
+    # Team strip
+    add_card(slide, 0.55, 3.7, 8.9, 2.0, CARD, TEAL)
+    team_h = slide.shapes.add_textbox(Inches(0.75), Inches(3.85), Inches(8.5), Inches(0.35))
+    _font(team_h.text_frame.paragraphs[0], f"Team {TEAM}", 16, bold=True, color=TEAL)
+
+    members = [
+        ("Priyanka Singh", "94872", "Priyanka.4.S@coforge.com", GOLD, 0.75),
+        ("Avinash Tripathi", "76765", "avinash.tripathi@coforge.com", TEAL, 5.1),
+    ]
+    for name, emp, email, col, x in members:
+        n = slide.shapes.add_textbox(Inches(x), Inches(4.35), Inches(3.8), Inches(0.35))
+        _font(n.text_frame.paragraphs[0], name, 15, bold=True, color=WHITE)
+        e = slide.shapes.add_textbox(Inches(x), Inches(4.7), Inches(3.8), Inches(0.3))
+        _font(e.text_frame.paragraphs[0], f"Emp {emp}", 11, color=col)
+        m = slide.shapes.add_textbox(Inches(x), Inches(5.05), Inches(3.8), Inches(0.35))
+        _font(m.text_frame.paragraphs[0], email, 11, color=SILVER)
+
+    pills = ["Multi-modal emotion", "3 Ps context", "Quasar GPT", "Live demo"]
+    px = 0.55
+    for pill in pills:
+        p = add_card(slide, px, 6.0, 2.15, 0.4, CARD_LIGHT, GOLD)
+        _font(p.text_frame.paragraphs[0], pill, 10, bold=True, color=GOLD, align=PP_ALIGN.CENTER)
+        px += 2.3
+
+    add_footer(slide, num, "Pitch")
+
+
+def slide_pitch_02_problem(prs):
+    """~60s — Problem + opportunity in one breath."""
+    slide = new_slide(prs)
+    add_bg_decor(slide, CORAL)
+    add_header(slide, "The Gap", "Travelers feel lost between social inspiration and booking engines", CORAL)
+    num = _n()
+
+    # Left: problem cards
+    problems = [
+        ("Decision paralysis", "Endless options, no personal guide"),
+        ("Popularity ≠ fit", "Trending places ignore mood & personality"),
+        ("Emotion ignored", "OTAs optimise price — not how you feel"),
+        ("Context missing", "No Profile · Preferences · Policy bridge"),
+    ]
+    y = 1.35
+    for title, desc in problems:
+        add_card(slide, 0.45, y, 4.7, 0.95, CARD, CORAL)
+        t = slide.shapes.add_textbox(Inches(0.65), Inches(y + 0.15), Inches(4.3), Inches(0.35))
+        _font(t.text_frame.paragraphs[0], title, 14, bold=True, color=CORAL)
+        d = slide.shapes.add_textbox(Inches(0.65), Inches(y + 0.5), Inches(4.3), Inches(0.35))
+        _font(d.text_frame.paragraphs[0], desc, 12, color=SILVER)
+        y += 1.1
+
+    # Right: opportunity
+    add_card(slide, 5.4, 1.35, 4.15, 4.3, CARD_LIGHT, GOLD)
+    rh = slide.shapes.add_textbox(Inches(5.6), Inches(1.55), Inches(3.8), Inches(0.4))
+    _font(rh.text_frame.paragraphs[0], "Why this matters", 16, bold=True, color=GOLD)
+
+    bullets = [
+        "Global OTA + leisure travel is huge — yet discovery is still price/list driven.",
+        "Social inspires; booking sites transact — nothing owns the emotional middle.",
+        "Multi-currency travelers (INR · USD · EUR…) need local-aware guidance.",
+        "Enterprise angle: Quasar-governed LLM + explainable recommendations.",
+    ]
+    by = 2.15
+    for b in bullets:
+        tb = slide.shapes.add_textbox(Inches(5.6), Inches(by), Inches(3.8), Inches(0.85))
+        _font(tb.text_frame.paragraphs[0], f"▸  {b}", 12, color=WHITE)
+        by += 0.85
+
+    add_callout_pro(
+        slide,
+        "Insight: We are the recommendation partner between Instagram and Booking.com.",
+        y=5.95,
+        accent=CORAL,
+    )
+    add_footer(slide, num, "Problem")
+
+
+def slide_pitch_03_solution(prs):
+    """~75s — Solution flow judges can remember."""
+    slide = new_slide(prs)
+    add_bg_decor(slide, TEAL)
+    add_header(slide, "Our Solution", "Sense → Context (3 Ps) → Reason → Inspire", TEAL)
+    num = _n()
+
+    phases = [
+        ("1", "Sense", "Mood · selfie CV\nvoice · text", GOLD),
+        ("2", "Context", "Profile · Prefs\nPolicy (3 Ps)", TEAL),
+        ("3", "Reason", "TravelAgent +\nQuasar GPT", CORAL),
+        ("4", "Inspire", "Boards · scores\nphotos · costs", SKY),
+    ]
+    px = 0.45
+    for nstr, title, desc, col in phases:
+        add_card(slide, px, 1.35, 2.2, 1.85, CARD, col)
+        nb = slide.shapes.add_textbox(Inches(px + 0.15), Inches(1.45), Inches(0.45), Inches(0.35))
+        _font(nb.text_frame.paragraphs[0], nstr, 20, bold=True, color=col)
+        tb = slide.shapes.add_textbox(Inches(px + 0.15), Inches(1.9), Inches(1.9), Inches(1.1))
+        _font(tb.text_frame.paragraphs[0], title, 16, bold=True, color=WHITE, align=PP_ALIGN.CENTER)
+        p2 = tb.text_frame.add_paragraph()
+        _font(p2, desc, 11, color=SILVER, align=PP_ALIGN.CENTER)
+        if px < 6.5:
+            add_arrow(slide, px + 2.25, 2.2, px + 2.5, 2.2, col)
+        px += 2.4
+
+    # What ships today
+    add_card(slide, 0.45, 3.45, 9.1, 2.85, CARD, TEAL)
+    sh = slide.shapes.add_textbox(Inches(0.65), Inches(3.6), Inches(8.7), Inches(0.35))
+    _font(sh.text_frame.paragraphs[0], "Hackathon MVP — live today", 15, bold=True, color=TEAL)
+
+    cols = [
+        ("Emotion", "Mood chips + on-device selfie CV → maps expression to mood", GOLD),
+        ("3 Ps", "Home base, interests, visa/policy — fused into every prompt", TEAL),
+        ("Agent", "Emotional engine · matcher · clusters → Quasar GPT JSON", CORAL),
+        ("Output", "Boards + costs; wait for GPT scene photos, then reveal together", SKY),
+    ]
+    cx = 0.65
+    for title, desc, col in cols:
+        t = slide.shapes.add_textbox(Inches(cx), Inches(4.1), Inches(2.1), Inches(0.35))
+        _font(t.text_frame.paragraphs[0], title, 13, bold=True, color=col)
+        d = slide.shapes.add_textbox(Inches(cx), Inches(4.45), Inches(2.1), Inches(1.5))
+        _font(d.text_frame.paragraphs[0], desc, 11, color=SILVER)
+        cx += 2.25
+
+    add_footer(slide, num, "Solution")
+
+
+def slide_pitch_04_demo_close(prs):
+    """~45s — Demo path + close."""
+    slide = new_slide(prs)
+    add_bg_decor(slide, GOLD)
+    add_header(slide, "Live Demo & Ask", "What you will see · stack · next", GOLD)
+    num = _n()
+
+    # Demo steps
+    steps = [
+        ("01", "Feel", "Mood chip or selfie → expression"),
+        ("02", "Context", "Currency · 3 Ps · intent"),
+        ("03", "Inspire", "Quasar builds concepts + boards"),
+        ("04", "See", "Photos load → destinations shown"),
+    ]
+    sx = 0.45
+    for nstr, title, desc in steps:
+        add_card(slide, sx, 1.35, 2.2, 1.55, CARD, GOLD)
+        nb = slide.shapes.add_textbox(Inches(sx + 0.12), Inches(1.45), Inches(1.9), Inches(0.3))
+        _font(nb.text_frame.paragraphs[0], nstr, 12, bold=True, color=GOLD)
+        tb = slide.shapes.add_textbox(Inches(sx + 0.12), Inches(1.85), Inches(1.9), Inches(0.85))
+        _font(tb.text_frame.paragraphs[0], title, 16, bold=True, color=WHITE)
+        p2 = tb.text_frame.add_paragraph()
+        _font(p2, desc, 11, color=SILVER)
+        sx += 2.35
+
+    # Stack + future
+    add_card(slide, 0.45, 3.15, 4.4, 2.55, CARD_LIGHT, TEAL)
+    lh = slide.shapes.add_textbox(Inches(0.65), Inches(3.3), Inches(4.0), Inches(0.35))
+    _font(lh.text_frame.paragraphs[0], "Built with", 14, bold=True, color=TEAL)
+    for line in [
+        "FastAPI · Docker · Quasar GPT",
+        "TravelAgent + emotion engines",
+        "Selfie CV on-device (face-api)",
+        "GPT prompts → realtime photos",
+    ]:
+        p = lh.text_frame.add_paragraph()
+        _font(p, f"•  {line}", 12, color=WHITE)
+
+    add_card(slide, 5.15, 3.15, 4.4, 2.55, CARD_LIGHT, CORAL)
+    rh = slide.shapes.add_textbox(Inches(5.35), Inches(3.3), Inches(4.0), Inches(0.35))
+    _font(rh.text_frame.paragraphs[0], "Next", 14, bold=True, color=CORAL)
+    for line in [
+        "RAG destination knowledge",
+        "Live voice emotion",
+        "Social / friend graph cues",
+        "OTA handoff for booking",
+    ]:
+        p = rh.text_frame.add_paragraph()
+        _font(p, f"•  {line}", 12, color=WHITE)
+
+    add_callout_pro(
+        slide,
+        f"Thank you — Team {TEAM}  ·  Demo: localhost:8000  ·  Questions welcome",
+        y=5.95,
+        accent=GOLD,
+    )
+    add_footer(slide, num, "Close")
+
+
+def build_presentation(full: bool = False) -> Path:
     SLIDE_NUM[0] = 0
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     ARCH_DIR.mkdir(parents=True, exist_ok=True)
@@ -1127,56 +1343,61 @@ def build_presentation() -> Path:
     prs.slide_width = Inches(10)
     prs.slide_height = Inches(7.5)
 
-    # Opening
-    slide_title(prs)
-    slide_team(prs)
+    if full:
+        # Long deck (archive / deep dive)
+        slide_title(prs)
+        slide_team(prs)
+        slide_section(prs, "01", "The Opportunity", "Market scale, problem, and underserved emotion layer", CORAL)
+        slide_executive_summary(prs)
+        slide_market_opportunity(prs)
+        slide_problem(prs)
+        slide_section(prs, "02", "Our Solution", "Emotion-first agent with 3 Ps context", TEAL)
+        slide_solution_proposal(prs)
+        slide_agentic_architecture_overview(prs)
+        slide_three_ps_and_emotion(prs)
+        slide_demo_vs_future(prs)
+        slide_capabilities(prs)
+        slide_section(prs, "02b", "Market Position", "Named competitors and our wedge", GOLD)
+        slide_competitive_landscape(prs)
+        slide_competitive_differentiation(prs)
+        slide_section(prs, "03", "Hackathon MVP", "Scope and deliverables", GREEN)
+        slide_mvp_scope(prs)
+        slide_mvp_deliverables(prs)
+        slide_section(prs, "04", "Architecture & Demo", "Technical deep dive and live demonstration", SKY)
+        slide_user_inputs(prs)
+        slide_ai_features(prs)
+        slide_outputs(prs)
+        slide_system_architecture(prs)
+        slide_architecture_mermaid_note(prs)
+        slide_data_flow(prs)
+        slide_tech_stack(prs)
+        slide_demo_flow(prs)
+        slide_section(prs, "05", "What's Next", "Roadmap and closing", GOLD)
+        slide_roadmap(prs)
+        slide_thank_you(prs)
+        out = OUTPUT
+    else:
+        # Default: 4-slide pitch for 3–4 minutes
+        slide_pitch_01_title(prs)
+        slide_pitch_02_problem(prs)
+        slide_pitch_03_solution(prs)
+        slide_pitch_04_demo_close(prs)
+        out = OUTPUT
+        pitch = OUTPUT.parent / "AI_Travel_Inspirator_Pitch.pptx"
+        prs.save(str(pitch))
 
-    # 01 Opportunity
-    slide_section(prs, "01", "The Opportunity", "Market scale, problem, and underserved emotion layer", CORAL)
-    slide_executive_summary(prs)
-    slide_market_opportunity(prs)
-    slide_problem(prs)
-
-    # 02 Solution
-    slide_section(prs, "02", "Our Solution", "Emotion-first agent with 3 Ps context", TEAL)
-    slide_solution_proposal(prs)
-    slide_agentic_architecture_overview(prs)
-    slide_three_ps_and_emotion(prs)
-    slide_demo_vs_future(prs)
-    slide_capabilities(prs)
-
-    # 02b Competition
-    slide_section(prs, "02b", "Market Position", "Named competitors and our wedge", GOLD)
-    slide_competitive_landscape(prs)
-    slide_competitive_differentiation(prs)
-
-    # 03 MVP
-    slide_section(prs, "03", "Hackathon MVP", "Scope and deliverables", GREEN)
-    slide_mvp_scope(prs)
-    slide_mvp_deliverables(prs)
-
-    # 04 Architecture & Demo
-    slide_section(prs, "04", "Architecture & Demo", "Technical deep dive and live demonstration", SKY)
-    slide_user_inputs(prs)
-    slide_ai_features(prs)
-    slide_outputs(prs)
-    slide_system_architecture(prs)
-    slide_architecture_mermaid_note(prs)
-    slide_data_flow(prs)
-    slide_tech_stack(prs)
-    slide_demo_flow(prs)
-
-    # 05 Close
-    slide_section(prs, "05", "What's Next", "Roadmap and closing", GOLD)
-    slide_roadmap(prs)
-    slide_thank_you(prs)
-
-    prs.save(str(OUTPUT))
-    return OUTPUT
+    prs.save(str(out))
+    return out
 
 
 if __name__ == "__main__":
-    path = build_presentation()
-    print(f"Presentation saved: {path} ({len(Presentation(path).slides)} slides)")
-    print(f"Mermaid PNG agent_architecture: {'YES' if AGENT_PNG.exists() else 'NO'}")
-    print(f"Mermaid PNG demo_vs_future: {'YES' if DEMO_PNG.exists() else 'NO'}")
+    import sys
+
+    full = "--full" in sys.argv
+    path = build_presentation(full=full)
+    n = len(Presentation(path).slides)
+    print(f"Presentation saved: {path} ({n} slides)")
+    if not full:
+        print("Also saved: docs/AI_Travel_Inspirator_Pitch.pptx")
+        print("Tip: ~45s / 60s / 75s / 45s per slide for a 3–4 min talk")
+    print("Long deck: python scripts/generate_presentation.py --full")
