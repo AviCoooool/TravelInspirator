@@ -67,6 +67,14 @@ class DestinationMatch(BaseModel):
     estimated_cost: str
     suggested_duration: str
     best_time_to_visit: str
+    image_prompts: list[str] = Field(
+        default_factory=list,
+        description="Exactly 3 distinct photorealistic scene prompts from the LLM for this place",
+    )
+    images: list[str] = Field(
+        default_factory=list,
+        description="Exactly 3 realtime image data-URIs generated from image_prompts (filled server-side before response)",
+    )
 
 
 class TravelConcept(BaseModel):

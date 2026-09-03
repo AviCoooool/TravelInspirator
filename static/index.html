@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/static/css/style.css" />
+  <link rel="stylesheet" href="/static/css/style.css?v=14" />
 </head>
 <body>
   <div class="bg-gradient"></div>
@@ -66,7 +66,7 @@
                   <option value="calm">Calm</option>
                   <option value="tired">Tired</option>
                 </select>
-                <p class="hint" id="selfie-status">Upload a selfie — we'll map expression → mood (simulated for demo).</p>
+                <p class="hint" id="selfie-status">Upload a selfie — on-device face AI reads your expression and maps it to mood.</p>
               </div>
               <div class="emotion-block">
                 <span class="emotion-label">Voice / spoken emotion</span>
@@ -201,8 +201,8 @@
       <h2>Crafting your journey...</h2>
       <p class="loading-steps">
         <span id="step-1" class="step active">Reading emotions &amp; 3 Ps</span>
-        <span id="step-2" class="step">Matching destinations</span>
-        <span id="step-3" class="step">Building inspiration boards</span>
+        <span id="step-2" class="step">Matching destinations via GPT</span>
+        <span id="step-3" class="step">Generating realtime photos…</span>
       </p>
     </section>
 
@@ -231,6 +231,7 @@
     <p>Global currencies · Emotions first · Profile · Preferences · Policy</p>
   </footer>
 
-  <script src="/static/js/app.js"></script>
+  <script src="/static/vendor/face-api/face-api.js"></script>
+  <script src="/static/js/app.js?v=14"></script>
 </body>
 </html>

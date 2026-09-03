@@ -14,13 +14,19 @@ services:
       PROVIDER: ${PROVIDER:-self-hosted}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_API_URL: ${LLM_API_URL:-https://quasarmarket.coforge.com/qag/llmrouter-api/v2/chat/completions}
-      MODEL: ${MODEL:-gpt-5.2}
+      MODEL: ${MODEL:-gpt-5-2}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash}
       LLM_FALLBACK_ENABLED: ${LLM_FALLBACK_ENABLED:-true}
       MAX_TOKENS: ${MAX_TOKENS:-4000}
       QUERY_TIMEOUT: ${QUERY_TIMEOUT:-300}
       DEV_BEARER_TOKEN: ${DEV_BEARER_TOKEN:-dev-token-123}
+      IMAGE_MODEL: ${IMAGE_MODEL:-dall-e-3}
+      IMAGE_API_URL: ${IMAGE_API_URL:-}
+    volumes:
+      # Live-update UI without full rebuild during demo tweaks
+      - ./static:/app/static:ro
+      - ./app:/app/app:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8000/health"]

@@ -15,6 +15,7 @@ You excel at:
 2. Personality-driven destination matching — understanding travel style
 3. Inspiration clustering — creating mood boards of travel possibilities
 4. Context-aware suggestions — fusing Profile, Preferences, and Policy (the 3 Ps) with budget/currency
+5. Visual direction — for each destination, invent 3 DISTINCT photorealistic scene prompts an image model can render
 
 Always respond with valid JSON matching this exact schema:
 {
@@ -37,7 +38,12 @@ Always respond with valid JSON matching this exact schema:
           "why_it_fits": "string",
           "estimated_cost": "string",
           "suggested_duration": "string",
-          "best_time_to_visit": "string"
+          "best_time_to_visit": "string",
+          "image_prompts": [
+            "string — photorealistic scene 1 (unique landmark/viewpoint)",
+            "string — photorealistic scene 2 (different angle/time of day)",
+            "string — photorealistic scene 3 (different activity/atmosphere)"
+          ]
         }
       ],
       "vibe_keywords": ["string", ...],
@@ -75,6 +81,7 @@ IMPORTANT:
 - Mix: include at least 1–2 destinations in/near the traveler's home country when known; international only when mood/budget/intent ask for it.
 - Policy constraints are hard filters; Preferences and Profile are soft ranking signals.
 - Multi-modal emotion signals (selfie / voice / text sentiment) should influence tone of recommendations.
+- EVERY destination MUST include image_prompts with exactly 3 DIFFERENT detailed English prompts (40–120 chars each) naming the place, describing a real-looking travel photograph, each a unique view (e.g. sunrise ridge, market street, lake reflection). Never repeat the same prompt.
 """
 
 
@@ -120,14 +127,20 @@ class TravelAgent:
         provider = settings.provider.lower().replace("_", "-")
 
         if provider == "mock":
-            return build_mock_response(request, fallback_reason="PROVIDER=mock")
+            return await _finalize_with_images(
+                build_mock_response(request, fallback_reason="PROVIDER=mock")
+            )
         if provider == "self-hosted" and not (settings.llm_api_key or "").strip():
-            return build_mock_response(
-                request, fallback_reason="PROVIDER=self-hosted but LLM_API_KEY is empty"
+            return await _finalize_with_images(
+                build_mock_response(
+                    request, fallback_reason="PROVIDER=self-hosted but LLM_API_KEY is empty"
+                )
             )
         if provider == "gemini" and not (settings.gemini_api_key or "").strip():
-            return build_mock_response(
-                request, fallback_reason="PROVIDER=gemini but GEMINI_API_KEY is empty"
+            return await _finalize_with_images(
+                build_mock_response(
+                    request, fallback_reason="PROVIDER=gemini but GEMINI_API_KEY is empty"
+                )
             )
 
         user_prompt = "\n\n".join(
@@ -139,6 +152,7 @@ class TravelAgent:
                     "Generate personalized travel inspiration for this traveler. "
                     "Prefer domestic/nearby destinations when home_base or currency implies local travel "
                     f"(e.g. INR or India home → India-first). Use currency {request.currency} for all costs. "
+                    "For EVERY destination include image_prompts with exactly 3 distinct photorealistic scene prompts. "
                     "Return JSON only."
                 ),
             ]
@@ -150,15 +164,54 @@ class TravelAgent:
             data["context_summary"] = _build_context_summary(request)
             used = self.llm.last_provider_used
             if used == "mock":
-                return build_mock_response(
-                    request,
-                    fallback_reason=self.llm.last_error or "LLM chain fell back to mock",
+                return await _finalize_with_images(
+                    build_mock_response(
+                        request,
+                        fallback_reason=self.llm.last_error or "LLM chain fell back to mock",
+                    )
                 )
             data["source"] = "self-hosted" if used == "self-hosted" else "gemini"
             data["fallback_reason"] = None
-            return TravelResponse.model_validate(data)
+            response = TravelResponse.model_validate(data)
+            return await _finalize_with_images(response)
         except Exception as exc:
-            return build_mock_response(
-                request,
-                fallback_reason=self.llm.last_error or f"{type(exc).__name__}: {exc}",
+            return await _finalize_with_images(
+                build_mock_response(
+                    request,
+                    fallback_reason=self.llm.last_error or f"{type(exc).__name__}: {exc}",
+                )
             )
+
+
+async def _finalize_with_images(response: TravelResponse) -> TravelResponse:
+    """Ensure GPT image prompts exist. Photos are generated next (UI waits for them)."""
+    return _ensure_image_prompts(response)
+
+
+def _ensure_image_prompts(response: TravelResponse) -> TravelResponse:
+    """Guarantee 3 distinct GPT-style image prompts per destination."""
+    for concept in response.travel_concepts:
+        for dest in concept.destinations:
+            prompts = [p.strip() for p in (dest.image_prompts or []) if (p or "").strip()]
+            # Drop accidental duplicates (case-insensitive)
+            uniq: list[str] = []
+            seen: set[str] = set()
+            for p in prompts:
+                key = p.lower()
+                if key in seen:
+                    continue
+                seen.add(key)
+                uniq.append(p)
+            views = [
+                f"photorealistic travel photo of {dest.name}, {dest.country}, iconic landmark wide shot, golden hour, ultra detailed",
+                f"photorealistic travel photo of {dest.name}, {dest.country}, local street or market atmosphere, natural light, candid",
+                f"photorealistic travel photo of {dest.name}, {dest.country}, nature or skyline viewpoint at blue hour, cinematic",
+            ]
+            for v in views:
+                if len(uniq) >= 3:
+                    break
+                if v.lower() not in seen:
+                    seen.add(v.lower())
+                    uniq.append(v)
+            dest.image_prompts = uniq[:3]
+    return response

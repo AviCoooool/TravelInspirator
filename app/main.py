@@ -2,13 +2,16 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from fastapi.staticfiles import StaticFiles
+
+from pydantic import BaseModel, Field
 
 from app.agent.travel_agent import TravelAgent
 from app.config import settings
 from app.llm.client import LLMClient
 from app.models.schemas import TravelRequest, TravelResponse
+from app.services.place_images import fetch_photo_bytes, fetch_photo_bytes_from_prompt, fetch_place_images
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
@@ -101,6 +104,77 @@ async def llm_ping() -> dict:
             "provider": provider,
             "error": client.last_error or f"{type(exc).__name__}: {exc}",
         }
+
+
+@app.get("/api/place-images")
+async def place_images(name: str, country: str = "") -> dict:
+    """Return 3 GPT-prompt-based photo URLs for a destination name (legacy helper)."""
+    if not (name or "").strip():
+        raise HTTPException(status_code=400, detail="name is required")
+    images = await fetch_place_images(name.strip(), country.strip() or None, limit=3)
+    return {"name": name, "country": country, "images": images, "source": "gpt-prompts"}
+
+
+@app.get("/api/place-photo")
+async def place_photo(
+    name: str = "",
+    country: str = "",
+    prompt: str = "",
+    i: int = 0,
+) -> Response:
+    """GET helper — prefer POST /api/place-photo for long GPT prompts."""
+    idx = max(0, min(int(i), 2))
+    place = f"{name}, {country}".strip().strip(",")
+    if (prompt or "").strip():
+        content, media_type = await fetch_photo_bytes_from_prompt(prompt.strip(), idx, place=place)
+    elif (name or "").strip():
+        content, media_type = await fetch_photo_bytes(name.strip(), country.strip() or None, idx)
+    else:
+        raise HTTPException(status_code=400, detail="prompt or name is required")
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Cache-Control": "public, max-age=600"},
+    )
+
+
+class PlacePhotoRequest(BaseModel):
+    prompt: str = Field(..., min_length=1)
+    i: int = 0
+    name: str = ""
+    country: str = ""
+
+
+@app.post("/api/place-photo")
+async def place_photo_post(body: PlacePhotoRequest) -> Response:
+    """Render image from GPT prompt in JSON body (avoids long query-string failures)."""
+    idx = max(0, min(int(body.i), 2))
+    place = f"{body.name}, {body.country}".strip().strip(",")
+    content, media_type = await fetch_photo_bytes_from_prompt(body.prompt.strip(), idx, place=place)
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Cache-Control": "public, max-age=600"},
+    )
+
+
+class SelfieAnalyzeRequest(BaseModel):
+    image_base64: str = Field(..., min_length=32)
+    mime_type: str = "image/jpeg"
+
+
+@app.post("/api/analyze-selfie")
+async def analyze_selfie(body: SelfieAnalyzeRequest) -> dict:
+    """Classify facial expression from an uploaded selfie via Quasar/Gemini vision."""
+    client = LLMClient()
+    try:
+        result = await client.analyze_expression(body.image_base64, body.mime_type)
+        return {"ok": True, **result}
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=client.last_error or f"Selfie analysis failed: {exc}",
+        ) from exc
 
 
 @app.post("/api/inspire", response_model=TravelResponse)

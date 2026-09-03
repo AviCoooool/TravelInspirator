@@ -206,3 +206,147 @@ class LLMClient:
                 "source": "mock",
             }
         )
+
+    async def analyze_expression(self, image_b64: str, mime_type: str = "image/jpeg") -> dict[str, Any]:
+        """Read facial expression from a selfie via Quasar/Gemini vision."""
+        mime = (mime_type or "image/jpeg").split(";")[0].strip() or "image/jpeg"
+        raw = (image_b64 or "").strip()
+        if raw.startswith("data:"):
+            # data:image/jpeg;base64,....
+            try:
+                header, raw = raw.split(",", 1)
+                if "image/" in header:
+                    mime = header.split(";")[0].replace("data:", "") or mime
+            except ValueError:
+                pass
+        if not raw:
+            raise RuntimeError("empty image")
+
+        system = (
+            "You are a facial expression classifier for a travel app. "
+            "Look only at the person's face in the photo. "
+            "Reply with JSON only — no markdown."
+        )
+        user_text = (
+            "Classify the dominant facial expression. "
+            "Choose exactly one expression from: happy, sad, frustrated, anxious, calm, tired. "
+            'Return JSON: {"expression":"<one of those>","confidence":0.0-1.0,"notes":"short reason"}'
+        )
+
+        chain = self._provider_chain()
+        # Skip pure mock in chain for vision unless nothing else works
+        errors: list[str] = []
+        for provider in chain:
+            if provider == "mock":
+                continue
+            try:
+                text = await self._call_vision(provider, system, user_text, raw, mime)
+                data = self.parse_json_response(text)
+                expression = str(data.get("expression") or "").strip().lower()
+                allowed = {"happy", "sad", "frustrated", "anxious", "calm", "tired"}
+                if expression not in allowed:
+                    # soft normalize
+                    for key in allowed:
+                        if key in expression:
+                            expression = key
+                            break
+                if expression not in allowed:
+                    raise RuntimeError(f"invalid expression: {expression}")
+                conf = data.get("confidence")
+                try:
+                    conf_f = float(conf) if conf is not None else 0.7
+                except (TypeError, ValueError):
+                    conf_f = 0.7
+                self.last_provider_used = provider
+                self.last_error = None
+                return {
+                    "expression": expression,
+                    "confidence": max(0.0, min(1.0, conf_f)),
+                    "notes": str(data.get("notes") or "")[:160],
+                    "provider": provider,
+                }
+            except Exception as exc:
+                errors.append(f"{provider}: {exc}")
+                logger.warning("Vision expression via %s failed: %s", provider, exc)
+
+        self.last_error = "; ".join(errors) or "No vision provider available"
+        raise RuntimeError(self.last_error)
+
+    async def _call_vision(
+        self,
+        provider: str,
+        system_prompt: str,
+        user_text: str,
+        image_b64: str,
+        mime_type: str,
+    ) -> str:
+        if provider == "self-hosted":
+            return await self._call_self_hosted_vision(system_prompt, user_text, image_b64, mime_type)
+        if provider == "gemini":
+            return await self._call_gemini_vision(system_prompt, user_text, image_b64, mime_type)
+        raise ValueError(f"Unsupported vision provider: {provider}")
+
+    async def _call_self_hosted_vision(
+        self, system_prompt: str, user_text: str, image_b64: str, mime_type: str
+    ) -> str:
+        key = (settings.llm_api_key or "").strip()
+        url = (settings.llm_api_url or "").strip()
+        if not key or not url:
+            raise RuntimeError("self-hosted requires LLM_API_KEY and LLM_API_URL")
+
+        data_url = f"data:{mime_type};base64,{image_b64}"
+        payload = {
+            "model": settings.model,
+            "max_tokens": 300,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": user_text},
+                        {"type": "image_url", "image_url": {"url": data_url}},
+                    ],
+                },
+            ],
+        }
+        headers = {
+            "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+        }
+        async with self._http_client() as client:
+            response = await client.post(url, headers=headers, json=payload)
+            if response.status_code >= 400:
+                body = response.text[:240]
+                raise RuntimeError(f"HTTP {response.status_code}: {body}")
+            return self._extract_openai_content(response.json())
+
+    async def _call_gemini_vision(
+        self, system_prompt: str, user_text: str, image_b64: str, mime_type: str
+    ) -> str:
+        if not (settings.gemini_api_key or "").strip():
+            raise RuntimeError("GEMINI_API_KEY missing")
+        model = settings.gemini_model
+        url = (
+            "https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{model}:generateContent?key={settings.gemini_api_key}"
+        )
+        payload = {
+            "systemInstruction": {"parts": [{"text": system_prompt}]},
+            "contents": [
+                {
+                    "role": "user",
+                    "parts": [
+                        {"text": user_text},
+                        {"inline_data": {"mime_type": mime_type, "data": image_b64}},
+                    ],
+                }
+            ],
+            "generationConfig": {"maxOutputTokens": 300},
+        }
+        async with self._http_client() as client:
+            response = await client.post(url, json=payload)
+            if response.status_code >= 400:
+                raise RuntimeError(f"Gemini HTTP {response.status_code}: {response.text[:240]}")
+            data = response.json()
+            return data["candidates"][0]["content"]["parts"][0]["text"]
+

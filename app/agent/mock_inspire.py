@@ -703,6 +703,11 @@ def build_mock_response(
                     "estimated_cost": _fmt_cost(currency, budget, days, scale=cost_scale),
                     "suggested_duration": f"{max(days - 1, 2)}–{days + 2} days",
                     "best_time_to_visit": season,
+                    "image_prompts": [
+                        f"photorealistic travel photo of {name}, {country}, iconic landmark wide shot, golden hour",
+                        f"photorealistic travel photo of {name}, {country}, local street atmosphere, natural light",
+                        f"photorealistic travel photo of {name}, {country}, scenic viewpoint at blue hour, cinematic",
+                    ],
                 }
             )
             all_dest_names.append(name)

@@ -21,5 +21,9 @@ class Settings(BaseSettings):
     query_timeout: int = 300
     dev_bearer_token: str = "dev-token-123"
 
+    # Image generation (Quasar OpenAI-compatible /images/generations)
+    image_model: str = "dall-e-3"
+    image_api_url: str = ""  # default: derived from LLM_API_URL
+
 
 settings = Settings()
